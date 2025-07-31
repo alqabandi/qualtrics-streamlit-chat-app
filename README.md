@@ -1,6 +1,6 @@
-# Self Censor App
+# Qualtrics Streamlit Chat App
 
-A Streamlit application for content analysis and censorship detection.
+A Streamlit-based chat application designed for integration with Qualtrics surveys via iframe embedding.
 
 ## Prerequisites (macOS)
 
@@ -32,8 +32,8 @@ brew install --cask docker
 
 1. Clone the repository (if not already done):
    ```bash
-   git clone <repository-url>
-   cd self_censor_app
+   git clone https://github.com/alqabandi/qualtrics-streamlit-chat-app.git
+   cd qualtrics-streamlit-chat-app
    ```
 
 2. Create a virtual environment and install dependencies:
@@ -58,22 +58,15 @@ cp .env.example .env  # If available, or create manually
 Your `.env` file should contain:
 
 ```env
-# OpenAI API Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Database Configuration (optional - only if using database features)
-SQL_USER=your_database_username
-SQL_PASSWORD=your_database_password
-SQL_DATABASE=your_database_name
-SQL_HOST=your_database_host
-SQL_PORT=3306
+# LiteLLM API Configuration
+DUKE_API_KEY=your_litellm_api_key_here
 ```
 
 **Required:**
-- `OPENAI_API_KEY` - Get this from [OpenAI Platform](https://platform.openai.com/api-keys)
+- `DUKE_API_KEY` - Your LiteLLM API key for accessing the proxy endpoint
+- The app is configured to use a LiteLLM proxy at `https://litellm.oit.duke.edu/v1`
 
-**Optional (for database features):**
-- Database variables are only needed if you're using the database functionality
+**Note:** The application uses LiteLLM instead of direct OpenAI API calls. Make sure you have access to the configured LiteLLM proxy endpoint.
 
 ### 5. Activate the Virtual Environment (Optional)
 
@@ -150,10 +143,10 @@ The project includes a Dockerfile that uses `uv` for fast dependency installatio
 2. **Build and run the container**
    ```bash
    # Build the Docker image
-   docker build -t self-censor-app .
+   docker build -t qualtrics-streamlit-chat-app .
    
    # Run the container with environment variables
-   docker run -p 8501:8501 --env-file .env self-censor-app
+   docker run -p 8501:8501 --env-file .env qualtrics-streamlit-chat-app
    ```
 
 The Dockerfile is optimized for:
@@ -164,15 +157,16 @@ The Dockerfile is optimized for:
 ## Project Structure
 
 ```
-self_censor_app/
-├── app.py              # Main Streamlit application
-├── reps_oppose_aid.py  # Supporting module
+qualtrics-streamlit-chat-app/
+├── app.py              # Main Streamlit chat application
+├── reps_oppose_aid.py  # Additional chat module
 ├── pyproject.toml      # Project configuration and dependencies
 ├── .python-version     # Python version specification
 ├── .env                # Environment variables (you create this)
 ├── .gitignore          # Git ignore file
 ├── Dockerfile          # Docker configuration
 ├── .streamlit/         # Streamlit configuration
+├── uv.lock             # Dependency lock file
 └── README.md           # This file
 ```
 
@@ -206,16 +200,31 @@ open /Applications/Docker.app
 
 ### Environment Variable Issues
 If you get API key errors:
-1. Check that your `.env` file exists and contains `OPENAI_API_KEY`
+1. Check that your `.env` file exists and contains `DUKE_API_KEY`
 2. Ensure there are no extra spaces around the `=` sign
-3. Restart the application after changing `.env`
+3. Verify you have access to the LiteLLM proxy endpoint
+4. Restart the application after changing `.env`
+
+## Qualtrics Integration
+
+This app is designed to be embedded in Qualtrics surveys via iframe. The application automatically extracts query parameters from the URL including:
+
+- `userID` - Participant identifier
+- `participantcode` - Participant code  
+- `condition` - Experimental condition
+- `participant_stance` - Participant stance information
+
+Example iframe integration:
+```javascript
+iframe.src = "https://your-deployment-url.com/?userID=${e://Field/ResponseID}&participantcode=${e://Field/participantcode}&condition=${e://Field/condition}&participant_stance=${e://Field/participant_stance}";
+```
 
 ## Migration from secrets.toml
 
 This project now uses environment variables instead of Streamlit secrets. If you were previously using `.streamlit/secrets.toml`:
 
 1. Create a `.env` file as described above
-2. Move your API keys and database credentials to the `.env` file
+2. Move your API keys to the `.env` file using `DUKE_API_KEY`
 3. The `.streamlit/secrets.toml` file is no longer needed
 
 ## Security Notes
