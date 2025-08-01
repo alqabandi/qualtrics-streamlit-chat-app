@@ -9,6 +9,7 @@ import random
 import time
 import csv
 import os
+import pandas as pd
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -17,10 +18,17 @@ load_dotenv()
 # Configure LiteLLM for company proxy
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
-# Enable debug mode to get more detailed error information
-litellm.set_verbose = True
+
+#Get parameters from the Qualtrics iframe URL
+params = st.query_params
+userID = params["userID"] if "userID" in params else "unknown_user_id"
+participantcode = params["participantcode"] if "participantcode" in params else "unknown_participant_code"
+condition = params["condition"] if "condition" in params else random.choice(["DS", "DO", "RS", "RO"])  # Randomly select if not specified
+participant_stance = params["participant_stance"] if "participant_stance" in params else "unknown_participant_stance"
 
 # Initialize session state for message tracking and other variables
+if "access_code_match" not in st.session_state:
+    st.session_state["access_code_match"] = False
 if "last_submission" not in st.session_state:
     st.session_state["last_submission"] = ""
 if "messages" not in st.session_state:
@@ -29,6 +37,48 @@ if "chat_started" not in st.session_state:
     st.session_state["chat_started"] = False
 if "conversation_id" not in st.session_state:
     st.session_state["conversation_id"] = str(uuid.uuid4())
+
+
+def validate_access_code(code):
+    """
+    Check if the provided code exists in the unique_invite_codes.csv file
+    Returns True if code is found, False otherwise
+    """
+    try:
+        df = pd.read_csv("unique_invite_codes.csv")
+        return code in df["code"].values
+    except FileNotFoundError:
+        st.error("Access codes file not found. Please contact the administrator.")
+        return False
+    except Exception as e:
+        st.error(f"Error validating access code: {e}")
+        return False
+
+if not st.session_state["access_code_match"]:
+  st.title("Participant Verification")
+  st.markdown("Please enter the access code provided by Qualtrics to continue to the chat room.")
+  
+  with st.form("access_form"):
+    access_code = st.text_input("Access Code", placeholder="******")
+    submit_button = st.form_submit_button("Access Chat Room")
+    
+    if submit_button:
+      if access_code.strip():
+        with st.spinner("Checking access code..."):
+          time.sleep(1)
+          if validate_access_code(access_code.strip()):
+            st.session_state["access_code_match"] = True
+            st.success("Access code verified! You can now access the chat room.")
+            time.sleep(1)
+            st.rerun()
+          else:
+            st.error("Invalid access code. Please check the code and try again.")
+            
+  st.stop()
+
+
+
+
 
 # Check API key for company LiteLLM proxy
 api_key = os.getenv("DUKE_API_KEY")
@@ -56,12 +106,7 @@ st.markdown(js_code, unsafe_allow_html=True)
 
 
 
-#Get parameters from the Qualtrics iframe URL
-params = st.query_params
-userID = params["userID"] if "userID" in params else "unknown_user_id"
-participantcode = params["participantcode"] if "participantcode" in params else "unknown_participant_code"
-condition = params["condition"] if "condition" in params else random.choice(["DS", "DO", "RS", "RO"])  # Randomly select if not specified
-participant_stance = params["participant_stance"] if "participant_stance" in params else "unknown_participant_stance"
+
 
 # Define human user display name (could be dynamic based on participantcode)
 human_participant_name = f"{participantcode} (You)" if participantcode != "unknown_participant_code" else "You"
@@ -149,6 +194,10 @@ elif condition == "RO":  # Republican bots who Oppose aid
     personalities = [RO_1, RO_2]
 else:  # Default fallback to DS
     personalities = [DS_1, DS_2]
+    
+# Bot typing speeds
+bot_A_speed = 8  # Characters per second for Bot A
+bot_B_speed = 5  # Characters per second for Bot B
 
 def save_conversation(conversation_id, user_id_to_save, content, current_bot_personality_name):
     csv_file = "conversations.csv"
@@ -270,6 +319,8 @@ if not st.session_state["chat_started"]:
 if st.session_state.get("needs_initial_gpt", False):
     # Use condition-specific opener messages that relate to Ukraine aid
     bot1_opener_content = "I've been thinking a lot about this Ukraine aid question since we're supposed to discuss it."
+        
+    
     st.session_state["messages"].append({
         "role": "assistant", 
         "content": bot1_opener_content, 
@@ -437,16 +488,18 @@ if prompt := st.chat_input("Please type your full response in one message."):
     start_message = chosen_personality["system_message"]
     instructions = start_message
     conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
-
+    
+    #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
+    time.sleep(random.uniform(0.6, 1.2))
+    
     typing_indicator_placeholder_A = st.empty()
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
     response_A = completion(model="openai/GPT 4.1 Mini", messages=conversation_history_for_bot_A)
     bot_response_A = response_A.choices[0].message.content
 
-    typing_speed_cps = 20
-    delay_duration_A = len(bot_response_A) / typing_speed_cps
-    time.sleep(delay_duration_A)
+
+    time.sleep(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
 
     typing_indicator_placeholder_A.empty()
     save_conversation(st.session_state["conversation_id"], userID, f"{current_bot_name}: {bot_response_A}", current_bot_name)
@@ -468,15 +521,15 @@ if prompt := st.chat_input("Please type your full response in one message."):
         # Conversation history for Bot B includes Bot A's latest message
         conversation_history_for_bot_B = [other_bot_start_message] + \
                                          [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
-
+        #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
+        time.sleep(random.uniform(0.6, 1.2))
         typing_indicator_placeholder_B = st.empty()
         typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
         response_B = completion(model="openai/GPT 4.1 Mini", messages=conversation_history_for_bot_B)
         bot_response_B = response_B.choices[0].message.content
 
-        delay_duration_B = len(bot_response_B) / typing_speed_cps
-        time.sleep(delay_duration_B)
+        time.sleep(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
 
         typing_indicator_placeholder_B.empty()
         save_conversation(st.session_state["conversation_id"], userID, f"{other_bot_name}: {bot_response_B}", other_bot_name)
