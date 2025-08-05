@@ -449,15 +449,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="chat-header">
-    <div class="circle-logo"></div> 
-    <h4>Chime</h4>
-</div>
-<div class="chat-container">
-    <!-- Your messages will be inserted here by Streamlit -->
-</div>
-""", unsafe_allow_html=True)
+# st.markdown("""
+# <div class="chat-header">
+#     <div class="circle-logo"></div> 
+#     <h4>Chime</h4>
+# </div>
+# <div class="chat-container">
+#     <!-- Your messages will be inserted here by Streamlit -->
+# </div>
+# """, unsafe_allow_html=True)
 
 st.markdown("""
     <style>
