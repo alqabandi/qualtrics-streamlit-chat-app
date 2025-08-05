@@ -441,6 +441,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
+<style>
+  .chat-header,
+  .circle-logo {
+    display: none !important;
+  }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
 <div class="chat-header">
     <div class="circle-logo"></div> 
     <h4>Chime</h4>
@@ -457,15 +466,6 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-  .chat-header,
-  .circle-logo {
-    display: none !important;
-  }
-</style>
-""", unsafe_allow_html=True)
 
 # Display messages using markdown to apply custom styles
 for message in st.session_state["messages"]:
