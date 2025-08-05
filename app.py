@@ -359,45 +359,20 @@ if st.session_state.get("needs_initial_gpt", False):
 # Custom CSS for styling
 st.markdown("""
 <style>
-    <div class="chat-header">
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
-        padding-top: 60px;
+        padding-top: 10px;
         height: 100vh;
         display: flex;
         flex-direction: column;
         background: #EEE;
     }
             
-    .chat-header {
-        position: fixed; /* make "width: 44rem" if want to use full screen (but creates little visual bug in qualtrics) */
-        top: 0px; /* Increased to move the header lower */
-        left: 0;
-        right: 0;
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        background-color: #333333; /* Darker background for the header */
-        border-top-left-radius: 10px;
-        border-top-right-radius: 10px;
-        z-index: 1;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-        
-            
-    .circle-logo {
-        height: 40px;
-        width: 40px;
-        background-color: #4CAF50;
-        border-radius: 50%;
-        margin-right: 10px;
-    }
-            
     .chat-container {
         flex-grow: 1;
-        margin: 2rem auto 0 auto;
+        margin: 0 auto 0 auto;
         overflow-y: auto;
         position: relative;
         box-sizing: border-box;
@@ -426,7 +401,7 @@ st.markdown("""
         text-align: left;
     }
     .system-prompt { /* New style for the system instructional message */
-        margin: 15px 0;
+        margin: 0 0 15px 0;
         padding: 10px;
         border-radius: 10px;
         background-color: #e0e0e0; /* Light grey background */
