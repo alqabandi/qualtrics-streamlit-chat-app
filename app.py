@@ -22,7 +22,7 @@ litellm.api_base = "https://litellm.oit.duke.edu/v1"
 #Get parameters from the Qualtrics iframe URL
 params = st.query_params
 userID = params["userID"] if "userID" in params else "unknown_user_id"
-participantcode = params["participantcode"] if "participantcode" in params else "unknown_participant_code"
+invitation_code = params["invitation_code"] if "invitation_code" in params else "unknown_invitation_code"
 condition = params["condition"] if "condition" in params else random.choice(["DS", "DO", "RS", "RO"])  # Randomly select if not specified
 participant_stance = params["participant_stance"] if "participant_stance" in params else "unknown_participant_stance"
 
@@ -46,7 +46,7 @@ def validate_access_code(code):
     """
     try:
         df = pd.read_csv("unique_invite_codes.csv")
-        return code in df["code"].values
+        return code in df["code"].values and code == invitation_code
     except FileNotFoundError:
         st.error("Access codes file not found. Please contact the administrator.")
         return False
@@ -108,8 +108,8 @@ st.markdown(js_code, unsafe_allow_html=True)
 
 
 
-# Define human user display name (could be dynamic based on participantcode)
-human_participant_name = f"{participantcode} (You)" if participantcode != "unknown_participant_code" else "You"
+# Define human user display name (could be dynamic based on invitation_code)
+human_participant_name = f"{invitation_code} (You)" if invitation_code != "unknown_invitation_code" else "You"
 
 
 # Define 8 bot personalities for political experiment
@@ -205,7 +205,7 @@ def save_conversation(conversation_id, user_id_to_save, content, current_bot_per
     fieldnames = [
         "conversation_id",
         "condition",
-        "participantcode", 
+        "invitation_code", 
         "participant_stance",
         "user_id",
         "date",
@@ -220,7 +220,7 @@ def save_conversation(conversation_id, user_id_to_save, content, current_bot_per
     row = {
         "conversation_id": conversation_id,
         "condition": condition,
-        "participantcode": participantcode,
+        "invitation_code": invitation_code,
         "participant_stance": participant_stance,
         "user_id": user_id_to_save,
         "date": current_date,
