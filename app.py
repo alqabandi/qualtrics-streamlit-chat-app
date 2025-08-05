@@ -55,7 +55,7 @@ def validate_access_code(code):
         return False
 
 if not st.session_state["access_code_match"]:
-  st.title("Participant Verification")
+  st.title("Participant Verification", anchor=False)
   st.markdown("Please enter the access code provided by Qualtrics to continue to the chat room.")
   
   with st.form("access_form"):
