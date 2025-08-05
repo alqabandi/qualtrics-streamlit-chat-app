@@ -458,6 +458,15 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+  .chat-header,
+  .circle-logo {
+    display: none !important;
+  }
+</style>
+""", unsafe_allow_html=True)
+
 # Display messages using markdown to apply custom styles
 for message in st.session_state["messages"]:
     message_class = "user-message" if message["role"] == "user" else ("bot-message" if message["role"] == "assistant" else "system-prompt")
