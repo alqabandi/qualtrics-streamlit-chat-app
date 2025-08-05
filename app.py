@@ -363,7 +363,7 @@ st.markdown("""
     body {
         font-family: 'Roboto', sans-serif;
         margin: 0;
-        padding-top: 10px;
+        padding-top: 0;
         height: 100vh;
         display: flex;
         flex-direction: column;
@@ -415,14 +415,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-  .chat-header,
-  .circle-logo {
-    display: none !important;
-  }
-</style>
-""", unsafe_allow_html=True)
+# st.markdown("""
+# <style>
+#   .chat-header,
+#   .circle-logo {
+#     display: none !important;
+#   }
+# </style>
+# """, unsafe_allow_html=True)
 
 
 st.markdown("""
