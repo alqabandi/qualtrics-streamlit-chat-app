@@ -24,7 +24,15 @@ params = st.query_params
 userID = params["userID"] if "userID" in params else "unknown_user_id"
 invitation_code = params["invitation_code"] if "invitation_code" in params else "unknown_invitation_code"
 condition = params["condition"] if "condition" in params else random.choice(["DS", "DO", "RS", "RO"])  # Randomly select if not specified
-participant_stance = params["participant_stance"] if "participant_stance" in params else "unknown_participant_stance"
+
+# Handle participant stance: p_s=O means "Oppose", p_s=S means "Support"
+p_s = params["p_s"] if "p_s" in params else "unknown"
+if p_s == "O":
+    participant_stance = "Oppose"
+elif p_s == "S":
+    participant_stance = "Support"
+else:
+    participant_stance = "unknown_participant_stance"
 
 # Initialize session state for message tracking and other variables
 if "access_code_match" not in st.session_state:
