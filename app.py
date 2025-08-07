@@ -516,7 +516,7 @@ if prompt := st.chat_input("Please type your full response in one message."):
     st.markdown(f"<div class='message bot-message'><b>{current_bot_name}:</b> {bot_response_A}</div>", unsafe_allow_html=True)
 
     # Probabilistic response from Bot B to Bot A
-    probability_bot_to_bot_reply = 0.5 # 50% chance for the other bot to reply
+    probability_bot_to_bot_reply = 0.7 # 50% chance for the other bot to reply
     if random.random() < probability_bot_to_bot_reply:
         other_bot_name = other_bot["name"]
         other_bot_start_message = other_bot["system_message"]
