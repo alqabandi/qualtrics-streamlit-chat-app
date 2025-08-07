@@ -1,234 +1,286 @@
 # Qualtrics Streamlit Chat App
 
-A Streamlit-based chat application designed for integration with Qualtrics surveys via iframe embedding.
+A chat application that embeds in Qualtrics surveys. Participants chat with AI bots that have different political stances on whether the US should continue to support Ukraine.
 
-## Prerequisites (macOS)
+## What You'll Build
 
-- [Homebrew](https://brew.sh/) - Package manager for macOS
-- [uv](https://docs.astral.sh/uv/) - Fast Python package installer and resolver
-- Python 3.11.3 (managed by uv)
+By the end of this guide, you'll have:
+- A live chat app running on Duke's VCM
+- HTTPS access for Qualtrics embedding  
+- Separate conversation files for each participant
+- A complete research pipeline from survey to data
 
-## Setup Instructions
+## Prerequisites
 
-### 1. Install Homebrew (if not already installed)
+You need:
+- Duke NetID and access to VCM
+- Basic terminal skills
+- A computer with SSH capability
+
+## Local Development Setup
+
+### Install Tools
+
+On macOS, install these tools:
 
 ```bash
+# Install Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
 
-### 2. Install Dependencies
-
-Install uv using Homebrew:
-```bash
+# Install uv and Docker
 brew install uv
-```
-
-If you plan to use Docker, also install Docker Desktop:
-```bash
 brew install --cask docker
 ```
 
-### 3. Clone and Setup the Project
-
-1. Clone the repository (if not already done):
-   ```bash
-   git clone https://github.com/alqabandi/qualtrics-streamlit-chat-app.git
-   cd qualtrics-streamlit-chat-app
-   ```
-
-2. Create a virtual environment and install dependencies:
-   ```bash
-   uv sync
-   ```
-
-   This command will:
-   - Install Python 3.11.3 (if not already available)
-   - Create a virtual environment
-   - Install all project dependencies from `pyproject.toml`
-
-### 4. Configure Environment Variables
-
-Create a `.env` file in the project root with your configuration:
+### Set Up the Project
 
 ```bash
-# Create your .env file
-cp .env.example .env  # If available, or create manually
+git clone https://github.com/alqabandi/qualtrics-streamlit-chat-app.git
+cd qualtrics-streamlit-chat-app
+uv sync
 ```
 
-Your `.env` file should contain:
-
+Create a `.env` file:
 ```env
-# LiteLLM API Configuration
 DUKE_API_KEY=your_litellm_api_key_here
 ```
 
-**Required:**
-- `DUKE_API_KEY` - Your LiteLLM API key for accessing the proxy endpoint
-- The app is configured to use a LiteLLM proxy at `https://litellm.oit.duke.edu/v1`
+You can get a Gateway API key from dashboard.oit.duke.edu.
 
-**Note:** The application uses LiteLLM instead of direct OpenAI API calls. Make sure you have access to the configured LiteLLM proxy endpoint.
-
-### 5. Activate the Virtual Environment (Optional)
-
-```bash
-source .venv/bin/activate
-```
-
-Alternatively, you can run commands directly with uv without activating:
-```bash
-uv run python app.py
-uv run streamlit run app.py
-```
-
-### 6. Running the Application
-
-#### Option 1: Using uv run (recommended)
+Test locally:
 ```bash
 uv run streamlit run app.py
 ```
 
-#### Option 2: With activated virtual environment
+Visit `http://localhost:8501` to verify it works.
+
+## VCM Setup
+
+### Create Your VM
+
+1. Go to [Duke VCM Portal](https://vcm.duke.edu/)
+2. Create a new VM with default settings (Ubuntu 22.04 LTS)
+3. Note your VM number (like `vcm-12345.vm.duke.edu`)
+
+### Configure the VM
+
+SSH into your VM:
 ```bash
-source .venv/bin/activate
-streamlit run app.py
+ssh vcm@vcm-XXXXX.vm.duke.edu
 ```
 
-The application will be available at `http://localhost:8501`
-
-## Development
-
-### Adding New Dependencies
-
-To add new dependencies to the project:
-
+Install Docker and Git:
 ```bash
-uv add package-name
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y docker.io git
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
 ```
 
-For development-only dependencies:
+Log out and back in for Docker permissions to take effect.
+
+### Deploy Your App
+
+Clone your repository:
 ```bash
-uv add --dev package-name
+git clone https://github.com/alqabandi/qualtrics-streamlit-chat-app.git
+cd qualtrics-streamlit-chat-app
 ```
 
-### Updating Dependencies
-
-To update all dependencies:
+Create your `.env` file:
 ```bash
-uv sync --upgrade
+nano .env
 ```
 
-To update a specific package:
-```bash
-uv add package-name --upgrade
+Add your API key:
+```env
+DUKE_API_KEY=your_litellm_api_key_here
 ```
 
-### Environment Management
+Build and run:
+```bash
+sudo docker build -t qualtrics_app .
+sudo docker run -d \
+  --name qualtrics_app_public \
+  --restart unless-stopped \
+  --env-file .env \
+  -p 8501:8501 \
+  qualtrics_app
+```
 
-- **Create/sync environment**: `uv sync`
-- **Remove environment**: `rm -rf .venv`
-- **Show installed packages**: `uv pip list`
-- **Show project info**: `uv show`
+Your app now runs at `https://vcm-XXXXX.vm.duke.edu:8501`
 
-## Docker Support (Optional)
+## Set Up Access Codes
 
-The project includes a Dockerfile that uses `uv` for fast dependency installation.
+Create `unique_invite_codes.csv` with your participant codes:
+```csv
+code
+ABC123
+DEF456
+GHI789
+```
 
-### Using Docker
+Upload this file to your VM:
+```bash
+scp unique_invite_codes.csv vcm@vcm-XXXXX.vm.duke.edu:~/qualtrics-streamlit-chat-app/
+```
 
-1. **Start Docker Desktop** (if installed via Homebrew)
+## Qualtrics Integration
+
+### Create Survey Fields
+
+In Qualtrics, set up these Embedded Data fields:
+- `ResponseID` (automatic)
+- `invitation_code` (your access codes)
+- `participantCondition` (DS, DO, RS, RO)
+- `p_s` (O for Oppose, S for Support)
+
+### Add the iframe
+
+In your Qualtrics question, use HTML View:
+
+```html
+<iframe 
+  src="https://vcm-XXXXX.vm.duke.edu:8501/?embed=true&userID=${e://Field/ResponseID}&invitation_code=${e://Field/invitation_code}&condition=${e://Field/participantCondition}&p_s=${e://Field/p_s}" 
+  width="100%" 
+  height="600px" 
+  frameborder="0">
+</iframe>
+```
+
+Replace `vcm-XXXXX` with your VM number.
+
+### Experimental Conditions
+
+The app has four conditions:
+- **DS**: Democratic bots who think the US should continue to support Ukraine against Russia
+- **DO**: Democratic bots who think the US should NOT continue to support Ukraine against Russia 
+- **RS**: Republican bots who think the US should continue to support Ukraine against Russia
+- **RO**: Republican bots who think the US should NOT continue to support Ukraine against Russia 
+
+Set `participantCondition` to one of these values for each participant.
+
+## Data Collection
+
+### How Conversations Save
+
+Each participant gets their own CSV file:
+- Format: `conversation_{userID}_{invitation_code}.csv`
+- Location: Inside the Docker container at `/app/conversations/`
+
+### Download Your Data
+
+Check what files exist:
+```bash
+ssh vcm@vcm-XXXXX.vm.duke.edu
+cd qualtrics-streamlit-chat-app
+sudo docker exec -it qualtrics_app_public ls -la /app/conversations/
+```
+
+Copy files from Docker to VM:
+```bash
+sudo docker cp qualtrics_app_public:/app/conversations/ ~/qualtrics-streamlit-chat-app/
+```
+
+Download to your computer:
+```bash
+# From your local computer
+scp "vcm@vcm-XXXXX.vm.duke.edu:~/qualtrics-streamlit-chat-app/conversations/*.csv" ~/insert_file_path_here/
+```
+
+### CSV Structure
+
+Each conversation file contains:
+- `conversation_id`: Unique ID for this chat session
+- `condition`: Which bots the participant saw (DS/DO/RS/RO)
+- `invitation_code`: The access code they used
+- `participant_stance`: Support or Oppose (from p_s parameter)
+- `user_id`: Their Qualtrics ResponseID
+- `date` and `hour`: When each message was sent
+- `content`: The actual message with sender name
+- `chatbot_type`: Who sent it (user_message, bot name, or System_Instruction)
+
+## Making Updates
+
+When you change your code:
+
+1. **Push changes:**
    ```bash
-   open /Applications/Docker.app
+   git add .
+   git commit -m "Description of changes"
+   git push origin main
    ```
 
-2. **Build and run the container**
+2. **Deploy to VM:**
    ```bash
-   # Build the Docker image
-   docker build -t qualtrics-streamlit-chat-app .
-   
-   # Run the container with environment variables
-   docker run -p 8501:8501 --env-file .env qualtrics-streamlit-chat-app
+   ssh vcm@vcm-XXXXX.vm.duke.edu
+   cd qualtrics-streamlit-chat-app
+   git pull origin main
+   sudo docker build -t qualtrics_app .
+   sudo docker stop qualtrics_app_public
+   sudo docker rm qualtrics_app_public
+   sudo docker run -d \
+     --name qualtrics_app_public \
+     --restart unless-stopped \
+     --env-file .env \
+     -p 8501:8501 \
+     qualtrics_app
    ```
 
-The Dockerfile is optimized for:
-- Fast builds using `uv`
-- Better Docker layer caching
-- Reproducible builds with frozen dependencies
+## Troubleshooting
+
+**App won't start:**
+```bash
+sudo docker logs qualtrics_app_public
+```
+
+**Can't access from Qualtrics:**
+- Verify your VM URL is correct
+- Check that port 8501 is accessible
+- Test the direct URL first
+
+**No conversation files:**
+- Make sure participants are using valid access codes
+- Check that all URL parameters are set correctly
+- Verify the Docker container is running
+
+**Permission errors:**
+```bash
+sudo chmod -R 755 ~/qualtrics-streamlit-chat-app/conversations/
+```
+
+**SSH connection fails:**
+- VCM VMs shut down automatically after inactivity
+- Restart your VM from the VCM portal
+- Wait a few minutes after restart before connecting
 
 ## Project Structure
 
 ```
 qualtrics-streamlit-chat-app/
-├── app.py              # Main Streamlit chat application
-├── reps_oppose_aid.py  # Additional chat module
-├── pyproject.toml      # Project configuration and dependencies
-├── .python-version     # Python version specification
-├── .env                # Environment variables (you create this)
-├── .gitignore          # Git ignore file
-├── Dockerfile          # Docker configuration
-├── .streamlit/         # Streamlit configuration
-├── uv.lock             # Dependency lock file
-└── README.md           # This file
+├── app.py                          # Main application
+├── pyproject.toml                  # Dependencies
+├── .env                           # Your API key (create this)
+├── .gitignore                     # Excludes conversations/
+├── Dockerfile                     # Container setup
+├── unique_invite_codes.csv        # Access codes (create this)
+├── conversations/                 # Generated data (ignored by git)
+└── README.md                      # This file
 ```
-
-## Troubleshooting
-
-### Python Version Issues
-If you encounter Python version issues:
-```bash
-uv python install 3.11.3
-uv sync
-```
-
-### Dependency Conflicts
-If you have dependency conflicts:
-```bash
-uv sync --reinstall
-```
-
-### Clean Reinstall
-For a completely clean reinstall:
-```bash
-rm -rf .venv
-uv sync
-```
-
-### Docker Issues
-If Docker commands fail, ensure Docker Desktop is running:
-```bash
-open /Applications/Docker.app
-```
-
-### Environment Variable Issues
-If you get API key errors:
-1. Check that your `.env` file exists and contains `DUKE_API_KEY`
-2. Ensure there are no extra spaces around the `=` sign
-3. Verify you have access to the LiteLLM proxy endpoint
-4. Restart the application after changing `.env`
-
-## Qualtrics Integration
-
-This app is designed to be embedded in Qualtrics surveys via iframe. The application automatically extracts query parameters from the URL including:
-
-- `userID` - Participant identifier
-- `participantcode` - Participant code  
-- `condition` - Experimental condition
-- `participant_stance` - Participant stance information
-
-Example iframe integration:
-```javascript
-iframe.src = "https://your-deployment-url.com/?userID=${e://Field/ResponseID}&participantcode=${e://Field/participantcode}&condition=${e://Field/condition}&participant_stance=${e://Field/participant_stance}";
-```
-
-## Migration from secrets.toml
-
-This project now uses environment variables instead of Streamlit secrets. If you were previously using `.streamlit/secrets.toml`:
-
-1. Create a `.env` file as described above
-2. Move your API keys to the `.env` file using `DUKE_API_KEY`
-3. The `.streamlit/secrets.toml` file is no longer needed
 
 ## Security Notes
 
-- The `.env` file is ignored by git to prevent accidental commits of sensitive data
-- Never commit API keys or passwords to version control
-- For production deployment, set environment variables directly rather than using `.env` files 
+- Conversation data never goes to GitHub (excluded in `.gitignore`)
+- Back up your conversation files regularly
+- Don't commit API keys to version control
+- Monitor your VM for unusual activity
+
+## Getting Help
+
+- For VCM issues: Contact Duke OIT
+- For LiteLLM API access: Contact your research supervisor
+- For Qualtrics problems: Check Duke's Qualtrics documentation
+- For app bugs: Check the GitHub issues or create a new one
+
+This setup gives you a complete research pipeline from participant recruitment to data analysis. The modular design makes it easy to modify bot personalities or experimental conditions for future studies.
