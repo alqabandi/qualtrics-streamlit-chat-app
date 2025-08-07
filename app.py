@@ -200,8 +200,16 @@ bot_A_speed = 8  # Characters per second for Bot A
 bot_B_speed = 5  # Characters per second for Bot B
 
 def save_conversation(conversation_id, user_id_to_save, content, current_bot_personality_name):
-    csv_file = "conversations.csv"
+    # Create conversations directory if it doesn't exist
+    conversations_dir = "conversations"
+    if not os.path.exists(conversations_dir):
+        os.makedirs(conversations_dir)
+    
+    # Create user-specific CSV filename
+    csv_filename = f"conversation_{user_id_to_save}_{invitation_code}.csv"
+    csv_file = os.path.join(conversations_dir, csv_filename)
     lock_file = csv_file + ".lock"
+    
     fieldnames = [
         "conversation_id",
         "condition",

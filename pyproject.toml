@@ -1,7 +1,7 @@
 [project]
-name = "self-censor-app"
+name = "qualtrics-streamlit-chat-app"
 version = "0.1.0"
-description = "Self Censor Application"
+description = "Qualtrics Streamlit Chat Application"
 readme = "README.md"
 requires-python = ">=3.11.3"
 dependencies = [
@@ -11,6 +11,8 @@ dependencies = [
     "filelock",
     "python-dotenv>=1.1.1",
     "litellm>=1.74.8",
+    "selenium>=4.34.2",
+    "aiohttp>=3.12.14",
 ]
 
 [tool.uv]
