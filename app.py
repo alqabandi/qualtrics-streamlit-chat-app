@@ -203,9 +203,18 @@ elif condition == "RO":  # Republican bots who Oppose continuing support
 else:  # Default fallback to DS
     personalities = [DS_1, DS_2]
     
+if "bot_A" not in st.session_state:
+    # Randomly assign personalities to Bot A and Bot B (50/50 chance)
+    if random.random() < 0.5:
+        st.session_state["bot_A"] = personalities[0]
+        st.session_state["bot_B"] = personalities[1]
+    else:
+        st.session_state["bot_A"] = personalities[1]
+        st.session_state["bot_B"] = personalities[0]
+    
 # Bot typing speeds
-bot_A_speed = 8  # Characters per second for Bot A
-bot_B_speed = 5  # Characters per second for Bot B
+bot_A_speed = 10  # Characters per second for Bot A
+bot_B_speed = 8  # Characters per second for Bot B
 
 def save_conversation(conversation_id, user_id_to_save, content, current_bot_personality_name):
     # Create conversations directory if it doesn't exist
@@ -343,11 +352,11 @@ if st.session_state.get("needs_initial_gpt", False):
     st.session_state["messages"].append({
         "role": "assistant", 
         "content": bot1_opener_content, 
-        "name": personalities[0]["name"]
+        "name": st.session_state["bot_A"]["name"]
     })
-    save_conversation(st.session_state["conversation_id"], userID, f'{personalities[0]["name"]}: {bot1_opener_content}', personalities[0]["name"])
+    save_conversation(st.session_state["conversation_id"], userID, f'{st.session_state["bot_A"]["name"]}: {bot1_opener_content}', st.session_state["bot_A"]["name"])
 
-    bot2_instructions = personalities[1]["system_message"]
+    bot2_instructions = st.session_state["bot_B"]["system_message"]
     bot2_history = [
         bot2_instructions,
         {"role": "user", "content": bot1_opener_content}
@@ -366,9 +375,9 @@ if st.session_state.get("needs_initial_gpt", False):
     st.session_state["messages"].append({
         "role": "assistant", 
         "content": bot2_response_content, 
-        "name": personalities[1]["name"]
+        "name": st.session_state["bot_B"]["name"]
     })
-    save_conversation(st.session_state["conversation_id"], userID, f'{personalities[1]["name"]}: {bot2_response_content}', personalities[1]["name"])
+    save_conversation(st.session_state["conversation_id"], userID, f'{st.session_state["bot_B"]["name"]}: {bot2_response_content}', st.session_state["bot_B"]["name"])
 
     # Prevent this block from running again
     st.session_state["needs_initial_gpt"] = False
@@ -475,11 +484,17 @@ if prompt := st.chat_input("Please type your full response in one message."):
     message_class = "user-message"
     # Immediately display the participant's message with their name
     st.markdown(f"<div class='message {message_class}'><b>{human_participant_name}:</b> {prompt}</div>", unsafe_allow_html=True)
+    
+    if random.random() < 0.5:
+        chosen_bot = st.session_state["bot_A"]
+        other_bot = st.session_state["bot_B"]
+    else:
+        chosen_bot = st.session_state["bot_B"]
+        other_bot = st.session_state["bot_A"]
+        
 
-    # Bot A (chosen_personality) responds to the user
-    chosen_personality = random.choice(personalities)
-    current_bot_name = chosen_personality["name"]
-    start_message = chosen_personality["system_message"]
+    current_bot_name = chosen_bot["name"]
+    start_message = chosen_bot["system_message"]
     instructions = start_message
     conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
     
@@ -501,18 +516,12 @@ if prompt := st.chat_input("Please type your full response in one message."):
     st.markdown(f"<div class='message bot-message'><b>{current_bot_name}:</b> {bot_response_A}</div>", unsafe_allow_html=True)
 
     # Probabilistic response from Bot B to Bot A
-    probability_bot_to_bot_reply = 0.5 # 50% chance for Bot B to reply to Bot A
+    probability_bot_to_bot_reply = 0.5 # 50% chance for the other bot to reply
     if random.random() < probability_bot_to_bot_reply:
-        # Determine Bot B (the other bot)
-        if chosen_personality == personalities[0]:
-            other_bot_personality = personalities[1]
-        else:
-            other_bot_personality = personalities[0]
+        other_bot_name = other_bot["name"]
+        other_bot_start_message = other_bot["system_message"]
 
-        other_bot_name = other_bot_personality["name"]
-        other_bot_start_message = other_bot_personality["system_message"]
-
-        # Conversation history for Bot B includes Bot A's latest message
+        # Conversation history for the other bot includes the first bot's latest message
         conversation_history_for_bot_B = [other_bot_start_message] + \
                                          [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
         #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
