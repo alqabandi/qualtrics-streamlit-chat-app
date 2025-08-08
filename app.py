@@ -197,7 +197,7 @@ elif condition == "RO":  # Republican bots who Oppose continuing support
 else:  # Default fallback - randomly select a condition
     random_condition = random.choice(["DS", "DO", "RS", "RO"])
     if random_condition == "DS":
-    personalities = [DS_1, DS_2]
+        personalities = [DS_1, DS_2]
     elif random_condition == "DO":
         personalities = [DO_1, DO_2]
     elif random_condition == "RS":
