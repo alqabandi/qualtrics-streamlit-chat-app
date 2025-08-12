@@ -415,6 +415,11 @@ st.markdown("""
         width: 70%;
         position: relative;
         word-wrap: break-word;
+        /* Prevent text selection on messages */
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
     }
     .user-message {
         background-color: #007bff;
@@ -440,6 +445,27 @@ st.markdown("""
         text-align: center;
         border: 1px dashed #aaa;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        /* Prevent text selection on system messages */
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    /* Disable text selection on entire page */
+    * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    /* Re-enable selection for input fields only */
+    input, textarea, [contenteditable="true"] {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
     }
 
 </style>
@@ -462,6 +488,93 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+# JavaScript to prevent copy/paste and other shortcuts
+components.html("""
+<script>
+    // Prevent right-click context menu
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Prevent copy/paste/cut keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Prevent Ctrl+C (copy)
+        if (e.ctrlKey && e.keyCode === 67) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent Ctrl+V (paste)
+        if (e.ctrlKey && e.keyCode === 86) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent Ctrl+X (cut)
+        if (e.ctrlKey && e.keyCode === 88) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent Ctrl+A (select all)
+        if (e.ctrlKey && e.keyCode === 65) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent Ctrl+S (save)
+        if (e.ctrlKey && e.keyCode === 83) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent F12 (developer tools)
+        if (e.keyCode === 123) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent Ctrl+Shift+I (developer tools)
+        if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+            e.preventDefault();
+            return false;
+        }
+        // Prevent Ctrl+U (view source)
+        if (e.ctrlKey && e.keyCode === 85) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Prevent drag and drop
+    document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Prevent text selection with mouse
+    document.addEventListener('selectstart', function(e) {
+        // Allow selection only in input fields
+        if (e.target.tagName.toLowerCase() === 'input' || 
+            e.target.tagName.toLowerCase() === 'textarea' ||
+            e.target.contentEditable === 'true') {
+            return true;
+        }
+        e.preventDefault();
+        return false;
+    });
+    
+    // Additional prevention for paste events
+    document.addEventListener('paste', function(e) {
+        // Allow paste only in input fields
+        if (e.target.tagName.toLowerCase() === 'input' || 
+            e.target.tagName.toLowerCase() === 'textarea' ||
+            e.target.contentEditable === 'true') {
+            return true;
+        }
+        e.preventDefault();
+        return false;
+    });
+    
+    console.log("Copy/paste prevention script loaded");
+</script>
+""", height=0, width=0)
 
 # Display messages using markdown to apply custom styles
 for message in st.session_state["messages"]:
