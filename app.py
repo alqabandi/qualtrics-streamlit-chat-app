@@ -325,7 +325,7 @@ def scroll_to_top():
 
 if not st.session_state["chat_started"]:
     # Show instruction message - consistent across all conditions
-    instructional_text = "You have been randomly assigned to discuss whether the U.S. should continue supporting Ukraine against Russia. Do you think the U.S. should continue supporting Ukraine or not? Why or why not?"
+    instructional_text = "Do you think the U.S. should continue supporting Ukraine? Why or why not?"
 
     st.session_state["messages"].append({
         "role": "system", 
@@ -348,7 +348,7 @@ if st.session_state.get("needs_initial_gpt", False):
     if condition in ["DS", "RS"]:  # Bots who support continuing support for Ukraine
         bot1_opener_content = "We absolutely need to keep supporting Ukraine against Russia. People who want to stop supporting them don't get that Putin won't stop at Ukraine. He is already threatening poland and the baltics, and we'll be fighting world war 3."
     else:  # DO, RO - Bots who oppose continuing support (both are 319226 personalities)
-        bot1_opener_content = "Honestly, I think it's time we stop supporting Ukraine. We've done enough. People who want to keep throwing billions over there don't care about inflation crushing families or that we can't even fund Medicaid properly."
+        bot1_opener_content = "If I have to be honest...... I think it's time we stop supporting Ukraine. We have done a lot to help them at this point. But people who want us to keep throwing billions over there are ignoring very real issues like inflation and the extremely high cost of living! We can't even fund Medicaid properly."
         
     
     st.session_state["messages"].append({
