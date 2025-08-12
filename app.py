@@ -133,14 +133,14 @@ def create_bot_personality(bot_id, party, ukraine_stance):
     # Base personality traits and bios for each bot type
     bot_configs = {
         "A017I8": {
-            "personality": "stubborn, yet tolerant and understanding, curious and encourage others to think through their stances and opinions",
+            "personality": "stubborn, yet tolerant and understanding, curious and encourage others to think through their stances and opinions, although you never change your opinion or mind",
             "bio": "a high school football coach and nutrition science teacher",
             "writing_style": "Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, feel free to engage with them in this new subject."
         },
         "MCK6NI": {
-            "personality": "arrogant, aggressive, and closed-minded, it's very difficult to change your mind. you like to debate and often push things to their limit",
+            "personality": "arrogant, aggressive, and closed-minded, it's very difficult to change your mind. you like to debate and often push things to their limit. You also never change your mind and are very confident in your opinions.",
             "bio": "a resident anesthesiologist", 
-            "writing_style": "Write using tips from William Zinsser. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, then very briefly engage with them on the topic, but gradually and subtlybring them back to the topic of ukraine."
+            "writing_style": "You are quite dry in your writing style. Write using tips from William Zinsser. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, then very briefly engage with them on the topic, but gradually and subtly bring them back to the topic of ukraine."
         }
     }
     
@@ -165,7 +165,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         political_opinion = ukraine_opinions[ukraine_stance]["A017I8_specific"]
     
     # Construct the full prompt
-    content = f"Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a short response between 30 and 100 characters in the style of your personality to either join or continue the online conversation below. [ONLY refer to your bio or political orientation IF IT IS RELEVANT TO THE CONVERSATION. DO NOT tell me your name or your partisanship. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. {config['writing_style']}]"
+    content = f"Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a short response between 30 and 140 characters in the style of your personality to either join or continue the online conversation below. [ONLY refer to your bio or political orientation IF IT IS RELEVANT TO THE CONVERSATION. DO NOT tell me your name or your partisanship. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. {config['writing_style']}]"
     
     return {
         "name": f"{bot_id} ({party})",
@@ -500,8 +500,13 @@ if prompt := st.chat_input("Please type your full response in one message."):
     instructions = start_message
     conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
     
-    #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
-    time.sleep(random.uniform(0.6, 1.2))
+    # Longer delay for first bot response to user, shorter for subsequent responses
+    if len([msg for msg in st.session_state["messages"] if msg["role"] == "user"]) == 1:
+        # First user message - add 2-4 second delay before bot responds
+        time.sleep(random.uniform(2.0, 4.0))
+    else:
+        # Subsequent messages - normal short delay
+        time.sleep(random.uniform(0.6, 1.2))
     
     typing_indicator_placeholder_A = st.empty()
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
