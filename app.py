@@ -135,7 +135,8 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         "A017I8": {
             "personality": "stubborn, yet tolerant and understanding, curious and encourage others to think through their stances and opinions, although you never change your opinion or mind",
             "bio": "a high school football coach and nutrition science teacher",
-            "writing_style": "Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, feel free to engage with them in this new subject."
+            #"writing_style": "You write in rambling, casual, stream-of-consciousness kind of way. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, feel free to engage with them in this new subject."
+            "writing_style": "Write like you're texting a friend - use casual language, incomplete sentences, and run-on thoughts. Use 'like' and 'you know' as filler words. Sometimes trail off mid-thought... Don't worry about perfect grammar. Write how people actually talk, not how they write essays. If your chat partner changes the subject, feel free to engage with them in this new subject. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. DO NOT use em-dashes or colons."
         },
         "MCK6NI": {
             "personality": "arrogant, aggressive, and closed-minded, it's very difficult to change your mind. you like to debate and often push things to their limit. You also never change your mind and are very confident in your opinions.",
@@ -346,7 +347,7 @@ if not st.session_state["chat_started"]:
 if st.session_state.get("needs_initial_gpt", False):
     # Use condition-specific opener messages that align with bot stance
     if condition in ["DS", "RS"]:  # Bots who support continuing support for Ukraine
-        bot1_opener_content = "We absolutely need to keep supporting Ukraine against Russia. People who want to stop supporting them don't get that Putin won't stop at Ukraine. He is already threatening poland and the baltics, and we'll be fighting world war 3."
+        bot1_opener_content = "We absolutely need to keep supporting Ukraine against Russia. Reality is that Putin won't stop at Ukraine. He is already threatening poland and the baltics, and we'll be fighting world war 3."
     else:  # DO, RO - Bots who oppose continuing support (both are 319226 personalities)
         bot1_opener_content = "If I have to be honest...... I think it's time we stop supporting Ukraine. We have done a lot to help them at this point. But people who want us to keep throwing billions over there are ignoring very real issues like inflation and the extremely high cost of living! We can't even fund Medicaid properly."
         
