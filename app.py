@@ -166,7 +166,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         political_opinion = ukraine_opinions[ukraine_stance]["A017I8_specific"]
     
     # Construct the full prompt
-    content = f"Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a short response between 30 and 140 characters in the style of your personality to either join or continue the online conversation below. [ONLY refer to your bio or political orientation IF IT IS RELEVANT TO THE CONVERSATION. DO NOT tell me your name or your partisanship. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. {config['writing_style']}]"
+    content = f"Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a short response between 30 and 140 characters, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation IF IT IS RELEVANT TO THE CONVERSATION. DO NOT tell me your name or your partisanship. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. ]"
     
     return {
         "name": f"{bot_id} ({party})",
