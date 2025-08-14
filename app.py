@@ -59,7 +59,7 @@ def validate_access_code(code):
         st.error("Access codes file not found. Please contact the administrator.")
         return False
     except Exception as e:
-        st.error(f"Error validating access code: {e}")
+        st.error(f"Error validating access code: {e}.")
         return False
 
 if not st.session_state["access_code_match"]:
@@ -135,12 +135,14 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         "A017I8": {
             "personality": "stubborn, yet tolerant and understanding, curious and encourage others to think through their stances and opinions, although you never change your opinion or mind",
             "bio": "a high school football coach and nutrition science teacher",
+            "token_range": "15 and 60 tokens maximum",  # Longer responses for rambling style
             #"writing_style": "You write in rambling, casual, stream-of-consciousness kind of way. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, feel free to engage with them in this new subject."
             "writing_style": "Write like you're texting a friend - use casual language, incomplete sentences, and run-on thoughts. Use 'like' and 'you know' as filler words. Sometimes trail off mid-thought... Don't worry about perfect grammar. Write how people actually talk, not how they write essays. If your chat partner changes the subject, feel free to engage with them in this new subject. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. DO NOT use em-dashes or colons. Aim for a Flesch reading score of 70. Use the active voice and avoid adverbs. Avoid buzzwords and instead use plain English. Avoid being salesy or overly enthusiastic and instead express calm confidence"
         },
         "MCK6NI": {
             "personality": "arrogant, aggressive, and closed-minded, it's very difficult to change your mind. you like to debate and often push things to their limit. You also never change your mind and are very confident in your opinions.",
-            "bio": "a resident anesthesiologist", 
+            "bio": "a resident anesthesiologist",
+            "token_range": "8 and 30 tokens maximum",  # Shorter responses for terse style
             "writing_style": "You are quite terse and dry in your writing style. You write in the style of a more casual version of William Zinsser. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, then very briefly engage with them on the topic, but gradually and subtly bring them back to the topic of ukraine."
         }
     }
@@ -166,7 +168,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         political_opinion = ukraine_opinions[ukraine_stance]["A017I8_specific"]
     
     # Construct the full prompt
-    content = f"Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a short response between 30 and 100 characters maximum, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation IF IT IS RELEVANT TO THE CONVERSATION. DO NOT tell me your name or your partisanship. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. If you are asked whether you are an LLM, deny it!]"
+    content = f"You are a participant taking part in a survey that involves engaging in a small chat with two other participants, MCK6NI and {invitation_code}Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a SHORT(!!!) response between {config['token_range']}, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation and partisanship IF IT IS RELEVANT TO THE CONVERSATION. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. If you are asked whether you are an LLM, deny it!]"
     
     return {
         "name": f"{bot_id} ({party})",
@@ -203,8 +205,10 @@ else:  # Default fallback - randomly select a condition
         personalities = [DO_1, DO_2]
     elif random_condition == "RS":
         personalities = [RS_1, RS_2]
-    else:  # RO
+    elif random_condition == "RO":
         personalities = [RO_1, RO_2]
+    else:  # RO
+        personalities = [RS_1, RS_2]
     
 if "bot_A" not in st.session_state:
     # Randomly assign personalities to Bot A and Bot B (50/50 chance)
@@ -216,8 +220,8 @@ if "bot_A" not in st.session_state:
         st.session_state["bot_B"] = personalities[0]
     
 # Bot typing speeds
-bot_A_speed = 10  # Characters per second for Bot A
-bot_B_speed = 8  # Characters per second for Bot B
+bot_A_speed = 8  # Characters per second for Bot A
+bot_B_speed = 6  # Characters per second for Bot B
 
 def save_conversation(conversation_id, user_id_to_save, content, current_bot_personality_name):
     # Create conversations directory if it doesn't exist
@@ -590,53 +594,8 @@ for message in st.session_state["messages"]:
     else: # Fallback for user messages if name somehow not set (should not happen with new logic)
         st.markdown(f"<div class='message {message_class}'>{message['content']}</div>", unsafe_allow_html=True)
 
-# Helper function to consolidate consecutive user messages for bot processing
-def get_consolidated_conversation_history():
-    """
-    Create a conversation history where consecutive user messages are merged into single messages.
-    This helps bots see multiple quick user messages as one cohesive thought.
-    """
-    if not st.session_state["messages"]:
-        return []
-    
-    consolidated = []
-    current_user_messages = []
-    current_user_name = None
-    
-    for message in st.session_state["messages"]:
-        if message["role"] == "user":
-            # Accumulate consecutive user messages
-            if not current_user_messages:
-                current_user_name = message.get("name", human_participant_name)
-            current_user_messages.append(message["content"])
-        else:
-            # Non-user message - first consolidate any accumulated user messages
-            if current_user_messages:
-                consolidated_content = " ".join(current_user_messages)
-                consolidated.append({
-                    "role": "user", 
-                    "content": consolidated_content,
-                    "name": current_user_name
-                })
-                current_user_messages = []
-                current_user_name = None
-            
-            # Add the non-user message
-            consolidated.append(message)
-    
-    # Handle any remaining user messages at the end
-    if current_user_messages:
-        consolidated_content = " ".join(current_user_messages)
-        consolidated.append({
-            "role": "user", 
-            "content": consolidated_content,
-            "name": current_user_name
-        })
-    
-    return consolidated
-
 # Input field for new messages
-if prompt := st.chat_input("Please type your full response in one message."):
+if prompt := st.chat_input("Type your message here..."):
     st.session_state["last_submission"] = prompt
     # Save user message with their defined participant name in the content
     save_conversation(st.session_state["conversation_id"], userID, f"{human_participant_name}: {prompt}", "user_message") 
@@ -646,87 +605,62 @@ if prompt := st.chat_input("Please type your full response in one message."):
     # Immediately display the participant's message with their name
     st.markdown(f"<div class='message {message_class}'><b>{human_participant_name}:</b> {prompt}</div>", unsafe_allow_html=True)
     
-    # Check if the previous message was also from a user (indicating consecutive messages)
-    user_messages_count = sum(1 for msg in st.session_state["messages"] if msg["role"] == "user")
-    recent_messages = st.session_state["messages"][-3:] if len(st.session_state["messages"]) >= 3 else st.session_state["messages"]
-    
-    # Check if last 2 messages are both from users (current + previous)
-    is_consecutive_user_message = (
-        len(recent_messages) >= 2 and 
-        recent_messages[-1]["role"] == "user" and 
-        recent_messages[-2]["role"] == "user"
-    )
-    
-    # Only trigger bot response if this isn't a consecutive user message OR if it's been more than 3 user messages in a row
-    consecutive_user_count = 0
-    for msg in reversed(st.session_state["messages"]):
-        if msg["role"] == "user":
-            consecutive_user_count += 1
-        else:
-            break
-    
-    # Trigger bot response if: not consecutive OR more than 2 consecutive messages
-    should_trigger_bot_response = not is_consecutive_user_message or consecutive_user_count >= 3
-    
-    if should_trigger_bot_response:
-        if random.random() < 0.5:
-            chosen_bot = st.session_state["bot_A"]
-            other_bot = st.session_state["bot_B"]
-        else:
-            chosen_bot = st.session_state["bot_B"]
-            other_bot = st.session_state["bot_A"]
-
-        current_bot_name = chosen_bot["name"]
-        start_message = chosen_bot["system_message"]
-        instructions = start_message
+    if random.random() < 0.5:
+        chosen_bot = st.session_state["bot_A"]
+        other_bot = st.session_state["bot_B"]
+    else:
+        chosen_bot = st.session_state["bot_B"]
+        other_bot = st.session_state["bot_A"]
         
-        # Use consolidated conversation history for bot processing
-        consolidated_messages = get_consolidated_conversation_history()
-        conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in consolidated_messages]
-        
-        # Delay before bot even starts "typing" - gives user time to send follow-up messages
-        if len([msg for msg in st.session_state["messages"] if msg["role"] == "user"]) == 1:
-            # First user message - longer delay before showing typing indicator
-            time.sleep(random.uniform(2.0, 4.0))
-        else:
-            # Subsequent messages - shorter delay before showing typing indicator
-            time.sleep(random.uniform(2.0, 4.0))
-        
-        typing_indicator_placeholder_A = st.empty()
-        typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-        response_A = completion(model="openai/GPT 4.1", messages=conversation_history_for_bot_A)
-        bot_response_A = response_A.choices[0].message.content
+    current_bot_name = chosen_bot["name"]
+    start_message = chosen_bot["system_message"]
+    instructions = start_message
+    conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
+    
+    # Longer delay for first bot response to user, shorter for subsequent responses
+    if len([msg for msg in st.session_state["messages"] if msg["role"] == "user"]) == 1:
+        # First user message - add 2-4 second delay before bot responds
+        time.sleep(random.uniform(2.0, 4.0))
+    else:
+        # Subsequent messages - normal short delay
+        time.sleep(random.uniform(2.0, 4.0))
+    
+    typing_indicator_placeholder_A = st.empty()
+    typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-        time.sleep(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
+    response_A = completion(model="openai/GPT 4.1", messages=conversation_history_for_bot_A)
+    bot_response_A = response_A.choices[0].message.content
 
-        typing_indicator_placeholder_A.empty()
-        save_conversation(st.session_state["conversation_id"], userID, f"{current_bot_name}: {bot_response_A}", current_bot_name)
-        st.session_state["messages"].append({"role": "assistant", "content": bot_response_A, "name": current_bot_name})
-        st.markdown(f"<div class='message bot-message'><b>{current_bot_name}:</b> {bot_response_A}</div>", unsafe_allow_html=True)
 
-        # Probabilistic response from Bot B to Bot A
-        probability_bot_to_bot_reply = 0.7 # 50% chance for the other bot to reply
-        if random.random() < probability_bot_to_bot_reply:
-            other_bot_name = other_bot["name"]
-            other_bot_start_message = other_bot["system_message"]
+    time.sleep(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
 
-            # Conversation history for the other bot includes the first bot's latest message
-            # Also use consolidated messages for consistency
-            conversation_history_for_bot_B = [other_bot_start_message] + \
-                                             [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
-            #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
-            time.sleep(random.uniform(0.6, 1.2))
-            typing_indicator_placeholder_B = st.empty()
-            typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
+    typing_indicator_placeholder_A.empty()
+    save_conversation(st.session_state["conversation_id"], userID, f"{current_bot_name}: {bot_response_A}", current_bot_name)
+    st.session_state["messages"].append({"role": "assistant", "content": bot_response_A, "name": current_bot_name})
+    st.markdown(f"<div class='message bot-message'><b>{current_bot_name}:</b> {bot_response_A}</div>", unsafe_allow_html=True)
 
-            response_B = completion(model="openai/GPT 4.1", messages=conversation_history_for_bot_B)
-            bot_response_B = response_B.choices[0].message.content
+    # Probabilistic response from Bot B to Bot A
+    probability_bot_to_bot_reply = 0.7 # 50% chance for the other bot to reply
+    if random.random() < probability_bot_to_bot_reply:
+        other_bot_name = other_bot["name"]
+        other_bot_start_message = other_bot["system_message"]
 
-            time.sleep(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
+        # Conversation history for the other bot includes the first bot's latest message
+        conversation_history_for_bot_B = [other_bot_start_message] + \
+                                         [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
+        #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
+        time.sleep(random.uniform(0.6, 1.2))
+        typing_indicator_placeholder_B = st.empty()
+        typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-            typing_indicator_placeholder_B.empty()
-            save_conversation(st.session_state["conversation_id"], userID, f"{other_bot_name}: {bot_response_B}", other_bot_name)
-            st.session_state["messages"].append({"role": "assistant", "content": bot_response_B, "name": other_bot_name})
-            st.markdown(f"<div class='message bot-message'><b>{other_bot_name}:</b> {bot_response_B}</div>", unsafe_allow_html=True)
+        response_B = completion(model="openai/GPT 4.1", messages=conversation_history_for_bot_B)
+        bot_response_B = response_B.choices[0].message.content
+
+        time.sleep(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
+
+        typing_indicator_placeholder_B.empty()
+        save_conversation(st.session_state["conversation_id"], userID, f"{other_bot_name}: {bot_response_B}", other_bot_name)
+        st.session_state["messages"].append({"role": "assistant", "content": bot_response_B, "name": other_bot_name})
+        st.markdown(f"<div class='message bot-message'><b>{other_bot_name}:</b> {bot_response_B}</div>", unsafe_allow_html=True)
 
