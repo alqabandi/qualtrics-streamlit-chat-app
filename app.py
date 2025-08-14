@@ -684,13 +684,13 @@ if prompt := st.chat_input("Please type your full response in one message."):
         consolidated_messages = get_consolidated_conversation_history()
         conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in consolidated_messages]
         
-        # Longer delay for first bot response to user, shorter for subsequent responses
+        # Delay before bot even starts "typing" - gives user time to send follow-up messages
         if len([msg for msg in st.session_state["messages"] if msg["role"] == "user"]) == 1:
-            # First user message - add 2-4 second delay before bot responds
+            # First user message - longer delay before showing typing indicator
             time.sleep(random.uniform(2.0, 4.0))
         else:
-            # Subsequent messages - normal short delay
-            time.sleep(random.uniform(0.6, 1.2))
+            # Subsequent messages - shorter delay before showing typing indicator
+            time.sleep(random.uniform(2.0, 4.0))
         
         typing_indicator_placeholder_A = st.empty()
         typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
