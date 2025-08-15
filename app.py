@@ -220,8 +220,8 @@ if "bot_A" not in st.session_state:
         st.session_state["bot_B"] = personalities[0]
     
 # Bot typing speeds
-bot_A_speed = 12  # Characters per second for Bot A
-bot_B_speed = 8  # Characters per second for Bot B
+bot_A_speed = 9  # Characters per second for Bot A
+bot_B_speed = 7  # Characters per second for Bot B
 
 def save_conversation(conversation_id, user_id_to_save, content, current_bot_personality_name):
     # Create conversations directory if it doesn't exist

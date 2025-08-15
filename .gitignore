@@ -28,3 +28,4 @@ __pycache__/
 conversations.csv
 conversations.csv.lock
 conversations/ 
+pretest_conversations/
