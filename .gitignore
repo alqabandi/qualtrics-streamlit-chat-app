@@ -33,3 +33,7 @@ all_vm_files.txt
 combine_pretest_conversations.R
 compare_response_ids.R
 investigate_missing.R
+all_conversations_backup/
+aug15_conversations/
+aug15_conversations_02/
+aug15_files.txt

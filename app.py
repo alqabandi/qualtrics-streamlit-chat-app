@@ -121,7 +121,7 @@ filler_responses_B = [
 ]
 
 # Safe completion function to handle content policy errors
-def safe_completion(model, messages, fallback_model="openai/Llama 3.3"):
+def safe_completion(model, messages, fallback_model="openai/GPT 4.1"):
     try:
         return completion(model=model, messages=messages)
     except BadRequestError as e:
@@ -407,7 +407,7 @@ if st.session_state.get("needs_initial_gpt", False):
 
     try:
         response_bot2 = completion(
-            model="openai/GPT 4.1",
+            model="openai/gpt-5",
             messages=bot2_history
         )
         bot2_response_content = response_bot2.choices[0].message.content
@@ -666,7 +666,7 @@ if prompt := st.chat_input("Type your message here..."):
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
 
-    resp_A = safe_completion("openai/GPT 4.1", conversation_history_for_bot_A)
+    resp_A = safe_completion("openai/gpt-5", conversation_history_for_bot_A)
     if resp_A is None:
         bot_response_A = random.choice(filler_responses_A)
     else:
