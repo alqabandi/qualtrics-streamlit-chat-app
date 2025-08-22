@@ -1,4 +1,5 @@
 from litellm import completion
+from litellm.exceptions import BadRequestError
 import litellm
 from filelock import FileLock
 import streamlit as st
@@ -96,6 +97,41 @@ if not api_key:
 
 # Configure LiteLLM with the API key
 litellm.api_key = api_key
+
+
+# Filler responses for bots
+filler_responses_A = [
+    "Huh, what?",
+    "i'm lwky lost",
+    "Wdym?",
+    "Is that right?",
+    "Say again?",
+    "Lost me there.",
+    "What do you mean?"
+]
+filler_responses_B = [
+    "What?",
+    "Uh huh...",
+    "Can you clarify?",
+    "Huh?",
+    "no clue lol",
+    "Lost me there",
+    "Explain?",
+    "wdym by that?"
+]
+
+# Safe completion function to handle content policy errors
+def safe_completion(model, messages, fallback_model="openai/Llama 3.3"):
+    try:
+        return completion(model=model, messages=messages)
+    except BadRequestError as e:
+        if "ContentPolicyViolationError" in str(e):
+            try:
+                return completion(model=fallback_model, messages=messages)
+            except Exception:
+                return None
+        raise
+      
 
 # If the user_id hasn't been set in session_state yet, try to retrieve it 
 js_code = """
@@ -629,9 +665,12 @@ if prompt := st.chat_input("Type your message here..."):
     typing_indicator_placeholder_A = st.empty()
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-    response_A = completion(model="openai/GPT 4.1", messages=conversation_history_for_bot_A)
-    bot_response_A = response_A.choices[0].message.content
 
+    resp_A = safe_completion("openai/GPT 4.1", conversation_history_for_bot_A)
+    if resp_A is None:
+        bot_response_A = random.choice(filler_responses_A)
+    else:
+        bot_response_A = resp_A.choices[0].message.content
 
     time.sleep(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
 
@@ -654,8 +693,11 @@ if prompt := st.chat_input("Type your message here..."):
         typing_indicator_placeholder_B = st.empty()
         typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-        response_B = completion(model="openai/GPT 4.1", messages=conversation_history_for_bot_B)
-        bot_response_B = response_B.choices[0].message.content
+        resp_B = safe_completion("openai/GPT 4.1", conversation_history_for_bot_B)
+        if resp_B is None:
+            bot_response_B = random.choice(filler_responses_B)
+        else:
+            bot_response_B = resp_B.choices[0].message.content
 
         time.sleep(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
 
