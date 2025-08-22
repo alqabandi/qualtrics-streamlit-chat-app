@@ -29,3 +29,7 @@ conversations.csv
 conversations.csv.lock
 conversations/ 
 pretest_conversations/
+all_vm_files.txt
+combine_pretest_conversations.R
+compare_response_ids.R
+investigate_missing.R
