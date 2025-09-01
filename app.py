@@ -19,12 +19,14 @@ load_dotenv()
 # Configure LiteLLM for company proxy
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
+# Constants
+GPT_41 = "openai/GPT 4.1"
 
-#Get parameters from the Qualtrics iframe URL
+# Get parameters from the Qualtrics iframe URL first
 params = st.query_params
-userID = params["userID"] if "userID" in params else "unknown_user_id"
-invitation_code = params["invitation_code"] if "invitation_code" in params else "unknown_invitation_code"
-condition = params["condition"] if "condition" in params else random.choice(["DS", "DO", "RS", "RO"])  # Randomly select if not specified
+userID = params.get("userID", "unknown_user_id")
+invitation_code = params.get("invitation_code", "unknown_invitation_code")
+condition = params.get("condition", random.choice(["DS", "DO", "RS", "RO"]))  # Randomly select if not specified
 
 # Handle participant stance: p_s=O means "Oppose", p_s=S means "Support"
 p_s = params["p_s"] if "p_s" in params else "unknown"
@@ -121,7 +123,7 @@ filler_responses_B = [
 ]
 
 # Safe completion function to handle content policy errors
-def safe_completion(model, messages, fallback_model="openai/GPT 4.1"):
+def safe_completion(model, messages, fallback_model=GPT_41):
     try:
         return completion(model=model, messages=messages)
     except BadRequestError as e:
@@ -407,7 +409,7 @@ if st.session_state.get("needs_initial_gpt", False):
 
     try:
         response_bot2 = completion(
-            model="openai/GPT 4.1",
+            model=GPT_41,
             messages=bot2_history
         )
         bot2_response_content = response_bot2.choices[0].message.content
@@ -666,7 +668,7 @@ if prompt := st.chat_input("Type your message here..."):
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
 
-    resp_A = safe_completion("openai/GPT 4.1", conversation_history_for_bot_A)
+    resp_A = safe_completion(GPT_41, conversation_history_for_bot_A)
     if resp_A is None:
         bot_response_A = random.choice(filler_responses_A)
     else:
@@ -693,7 +695,7 @@ if prompt := st.chat_input("Type your message here..."):
         typing_indicator_placeholder_B = st.empty()
         typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-        resp_B = safe_completion("openai/GPT 4.1", conversation_history_for_bot_B)
+        resp_B = safe_completion(GPT_41, conversation_history_for_bot_B)
         if resp_B is None:
             bot_response_B = random.choice(filler_responses_B)
         else:
