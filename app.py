@@ -1,5 +1,5 @@
 from litellm import completion
-from litellm.exceptions import BadRequestError
+from litellm.exceptions import BadRequestError, RateLimitError, ServiceUnavailableError, APIConnectionError, InternalServerError
 import litellm
 from filelock import FileLock
 import streamlit as st
@@ -122,14 +122,43 @@ filler_responses_B = [
     "wdym by that?"
 ]
 
-# Safe completion function to handle content policy errors
+
 def safe_completion(model, messages, fallback_model=GPT_41):
+    """
+    Call the completion API with exponential backoff retries and content policy fallback.
+    
+    Retries rate limits, timeouts, and server errors with exponential backoff.
+    Switches to fallback model for content policy violations. Authentication 
+    and malformed request errors fail immediately.
+    """
+    max_retries = 5
+    
+    def attempt_completion(model_to_use, messages, max_retries):
+        for attempt in range(max_retries):
+            try:
+                return completion(model=model_to_use, messages=messages)
+            except (RateLimitError, ServiceUnavailableError, APIConnectionError, InternalServerError) as e:
+                if attempt < max_retries - 1:
+                    # Exponential backoff: 0.5s, 1s, 2s, 4s
+                    delay = 0.5 * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                raise
+            except BadRequestError as e:
+                if attempt < max_retries - 1:
+                    # Shorter delay for bad requests
+                    time.sleep(0.25)
+                    continue
+                raise
+            except Exception as e:
+                raise  # Don't retry auth errors, invalid requests, etc.
+    
     try:
-        return completion(model=model, messages=messages)
+        return attempt_completion(model, messages, max_retries)
     except BadRequestError as e:
         if "ContentPolicyViolationError" in str(e):
             try:
-                return completion(model=fallback_model, messages=messages)
+                return attempt_completion(fallback_model, messages, max_retries)
             except Exception:
                 return None
         raise
@@ -408,7 +437,7 @@ if st.session_state.get("needs_initial_gpt", False):
     ]
 
     try:
-        response_bot2 = completion(
+        response_bot2 = safe_completion(
             model=GPT_41,
             messages=bot2_history
         )
