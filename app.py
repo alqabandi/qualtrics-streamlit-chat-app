@@ -12,6 +12,7 @@ import csv
 import os
 import pandas as pd
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +22,24 @@ litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
 # Constants
 GPT_41 = "openai/GPT 4.1"
+
+# Configure logger with userID, invitation_code, and sessionID
+class ChatAppFormatter(logging.Formatter):
+    def format(self, record):
+        record.userID = st.query_params.get("userID", "unknown_user_id")
+        record.invitation_code = st.query_params.get("invitation_code", "unknown_invitation_code")
+        record.conversation_id = st.session_state.get("conversation_id", "unknown_conversation")
+        return super().format(record)
+
+logger = logging.getLogger(__name__)
+if not logger.handlers: # Only configure logger once to avoid duplicate handlers
+    handler = logging.StreamHandler()
+    formatter = ChatAppFormatter(
+        '%(asctime)s | %(levelname)s | %(userID)s | %(invitation_code)s | %(conversation_id)s | %(message)s'
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 # Get parameters from the Qualtrics iframe URL first
 params = st.query_params
@@ -48,6 +67,7 @@ if "chat_started" not in st.session_state:
     st.session_state["chat_started"] = False
 if "conversation_id" not in st.session_state:
     st.session_state["conversation_id"] = str(uuid.uuid4())
+    logger.info(f"Generated conversation id")
 
 
 def validate_access_code(code):
@@ -56,12 +76,22 @@ def validate_access_code(code):
     Returns True if code is found, False otherwise
     """
     try:
+        logger.info(f"Validating access code attempt")
         df = pd.read_csv("unique_invite_codes.csv")
-        return code in df["code"].values and code == invitation_code
+        is_valid = code in df["code"].values and code == invitation_code
+        
+        if is_valid:
+            logger.info("Access code validation successful")
+        else:
+            logger.warning("Access code validation failed - invalid code")
+        
+        return is_valid
     except FileNotFoundError:
+        logger.exception("Access code validation failed - codes file not found")
         st.error("Access codes file not found. Please contact the administrator.")
         return False
     except Exception as e:
+        logger.exception("Access code validation failed - exception")
         st.error(f"Error validating access code: {e}.")
         return False
 
@@ -136,30 +166,42 @@ def safe_completion(model, messages, fallback_model=GPT_41):
     def attempt_completion(model_to_use, messages, max_retries):
         for attempt in range(max_retries):
             try:
-                return completion(model=model_to_use, messages=messages)
+                logger.info(f"API call attempt {attempt + 1}/{max_retries} to model {model_to_use}")
+                response = completion(model=model_to_use, messages=messages)
+                logger.info(f"API call successful to model {model_to_use}")
+                return response
             except (RateLimitError, ServiceUnavailableError, APIConnectionError, InternalServerError) as e:
                 if attempt < max_retries - 1:
                     # Exponential backoff: 0.5s, 1s, 2s, 4s
                     delay = 0.5 * (2 ** attempt)
+                    logger.warning(f"API call failed (attempt {attempt + 1}/{max_retries}): {type(e).__name__} - retrying in {delay}s")
                     time.sleep(delay)
                     continue
+                logger.exception("API call failed permanently after {max_retries} attempts.")
                 raise
             except BadRequestError as e:
                 if attempt < max_retries - 1:
+                    logger.warning(f"API call bad request (attempt {attempt + 1}/{max_retries}): {str(e)[:100]} - retrying in 0.25s")
                     # Shorter delay for bad requests
                     time.sleep(0.25)
                     continue
+                logger.exception("API call failed permanently with BadRequestError.")
                 raise
             except Exception as e:
+                logger.exception("API call failed with non-retryable error.")
                 raise  # Don't retry auth errors, invalid requests, etc.
     
     try:
         return attempt_completion(model, messages, max_retries)
     except BadRequestError as e:
         if "ContentPolicyViolationError" in str(e):
+            logger.warning(f"Content policy violation with {model}, attempting fallback to {fallback_model}")
             try:
-                return attempt_completion(fallback_model, messages, max_retries)
-            except Exception:
+                result = attempt_completion(fallback_model, messages, max_retries)
+                logger.info(f"Fallback to {fallback_model} successful after content policy violation")
+                return result
+            except Exception as fallback_error:
+                logger.error(f"Fallback to {fallback_model} also failed: {type(fallback_error).__name__}")
                 return None
         raise
       
@@ -291,6 +333,7 @@ bot_A_speed = 9  # Characters per second for Bot A
 bot_B_speed = 7  # Characters per second for Bot B
 
 def save_conversation(conversation_id, user_id_to_save, content, current_bot_personality_name):
+    logger.info("Saving conversation to CSV.")
     # Create conversations directory if it doesn't exist
     conversations_dir = "conversations"
     if not os.path.exists(conversations_dir):
@@ -336,8 +379,9 @@ def save_conversation(conversation_id, user_id_to_save, content, current_bot_per
                 if not file_exists or os.stat(csv_file).st_size == 0:
                     writer.writeheader()
                 writer.writerow(row)
+        logger.info(f"Conversation saved successfully to {csv_filename} - type: {current_bot_personality_name}")
     except Exception as err:
-        print(f"CSV logging failed: {err}")
+        logger.exception(f"Failed to save conversation to CSV: {csv_filename}")
         
 def scroll_to_top():
     components.html("""
@@ -663,6 +707,7 @@ for message in st.session_state["messages"]:
 
 # Input field for new messages
 if prompt := st.chat_input("Type your message here..."):
+    logger.info("User message received")
     st.session_state["last_submission"] = prompt
     # Save user message with their defined participant name in the content
     save_conversation(st.session_state["conversation_id"], userID, f"{human_participant_name}: {prompt}", "user_message") 
@@ -681,17 +726,26 @@ if prompt := st.chat_input("Type your message here..."):
         
 
     current_bot_name = chosen_bot["name"]
+    logger.info(f"Bot {current_bot_name} selected to respond")
     start_message = chosen_bot["system_message"]
     instructions = start_message
     conversation_history_for_bot_A = [instructions] + [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
+
     
+    def sleep_and_log_delay(delay):
+        "Log how long we sleep for"
+        logger.info(f"Sleeping for {delay:.2f} seconds")
+        time.sleep(delay)
+        logger.info(f"Sleep complete after {delay:.2f} seconds")
+
+
     # Longer delay for first bot response to user, shorter for subsequent responses
     if len([msg for msg in st.session_state["messages"] if msg["role"] == "user"]) == 1:
         # First user message - add 2-4 second delay before bot responds
-        time.sleep(random.uniform(2.0, 4.0))
+        sleep_and_log_delay(random.uniform(2.0, 4.0))
     else:
         # Subsequent messages - normal short delay
-        time.sleep(random.uniform(2.0, 4.0))
+        sleep_and_log_delay(random.uniform(2.0, 4.0))
     
     typing_indicator_placeholder_A = st.empty()
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
@@ -700,10 +754,12 @@ if prompt := st.chat_input("Type your message here..."):
     resp_A = safe_completion(GPT_41, conversation_history_for_bot_A)
     if resp_A is None:
         bot_response_A = random.choice(filler_responses_A)
+        logger.warning(f"Bot {current_bot_name} API failed - using fallback response")
     else:
         bot_response_A = resp_A.choices[0].message.content
+        logger.info(f"Bot {current_bot_name} generated response")
 
-    time.sleep(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
+    sleep_and_log_delay(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
 
     typing_indicator_placeholder_A.empty()
     save_conversation(st.session_state["conversation_id"], userID, f"{current_bot_name}: {bot_response_A}", current_bot_name)
@@ -711,26 +767,29 @@ if prompt := st.chat_input("Type your message here..."):
     st.markdown(f"<div class='message bot-message'><b>{current_bot_name}:</b> {bot_response_A}</div>", unsafe_allow_html=True)
 
     # Probabilistic response from Bot B to Bot A
-    probability_bot_to_bot_reply = 0.7 # 50% chance for the other bot to reply
+    probability_bot_to_bot_reply = 0.7 # 70% chance for the other bot to reply
     if random.random() < probability_bot_to_bot_reply:
         other_bot_name = other_bot["name"]
+        logger.info(f"Bot {other_bot_name} will also respond ({probability_bot_to_bot_reply:.0%} probability triggered)")
         other_bot_start_message = other_bot["system_message"]
 
         # Conversation history for the other bot includes the first bot's latest message
         conversation_history_for_bot_B = [other_bot_start_message] + \
                                          [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
         #random read delay between 0.6 and 1.2 seconds to simulate human-like typing
-        time.sleep(random.uniform(0.6, 1.2))
+        sleep_and_log_delay(random.uniform(0.6, 1.2))
         typing_indicator_placeholder_B = st.empty()
         typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
         resp_B = safe_completion(GPT_41, conversation_history_for_bot_B)
         if resp_B is None:
             bot_response_B = random.choice(filler_responses_B)
+            logger.warning(f"Bot {other_bot_name} API failed - using fallback response")
         else:
             bot_response_B = resp_B.choices[0].message.content
+            logger.info(f"Bot {other_bot_name} generated response")
 
-        time.sleep(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
+        sleep_and_log_delay(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
 
         typing_indicator_placeholder_B.empty()
         save_conversation(st.session_state["conversation_id"], userID, f"{other_bot_name}: {bot_response_B}", other_bot_name)
