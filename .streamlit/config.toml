@@ -6,7 +6,7 @@ port = 8501
 address = "0.0.0.0"
 
 [client]
-showErrorDetails = false
+showErrorDetails = "none"
 
 [ui]
 hideTopBar = true
