@@ -106,6 +106,7 @@ sudo docker run -d \
   --restart unless-stopped \
   --env-file .env \
   -p 8501:8501 \
+  -v ./conversations:/app/conversations \
   qualtrics_app
 ```
 
@@ -225,6 +226,7 @@ When you change your code:
      --restart unless-stopped \
      --env-file .env \
      -p 8501:8501 \
+     -v ./conversations:/app/conversations \
      qualtrics_app
    ```
 
