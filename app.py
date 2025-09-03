@@ -24,6 +24,7 @@ litellm.api_base = "https://litellm.oit.duke.edu/v1"
 #LLM_model = "openai/GPT 4.1"
 LLM_model = "openai/gpt-5"
 
+
 # Configure logger with userID, invitation_code, and sessionID
 class ChatAppFormatter(logging.Formatter):
     def format(self, record):
@@ -152,6 +153,7 @@ filler_responses_B = [
     "Explain?",
     "wdym by that?"
 ]
+
 
 
 def safe_completion(model, messages, fallback_model=LLM_model):
