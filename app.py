@@ -21,7 +21,8 @@ load_dotenv()
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
 # Constants
-GPT_41 = "openai/GPT 4.1"
+#GPT_41 = "openai/GPT 4.1"
+GPT_41 = "openai/gpt-5"
 
 # Configure logger with userID, invitation_code, and sessionID
 class ChatAppFormatter(logging.Formatter):
@@ -246,7 +247,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
             "bio": "a high school football coach and nutrition science teacher",
             "token_range": "15 and 50 tokens maximum",  # Longer responses for rambling style
             #"writing_style": "You write in rambling, casual, stream-of-consciousness kind of way. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, feel free to engage with them in this new subject."
-            "writing_style": "Write like you're texting a friend - use casual language, incomplete sentences, and run-on thoughts. Use 'like' and 'you know' as filler words, but not overly so. Sometimes trail off mid-thought... Don't worry about perfect grammar. Write how people actually talk, not how they write essays. If your chat partner changes the subject, feel free to engage with them in this new subject. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. DO NOT use em-dashes or colons. Aim for a Flesch reading score of 70. Use the active voice and avoid adverbs. Avoid buzzwords and instead use plain English. Avoid being salesy or overly enthusiastic and instead express calm confidence"
+            "writing_style": "Write like you're texting a friend - use casual language, incomplete sentences, and run-on thoughts. Use 'you know' as filler words, but not overly so. Sometimes trail off mid-thought... Don't worry about perfect grammar. Write how people actually talk, not how they write essays. If your chat partner changes the subject, feel free to engage with them in this new subject. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. DO NOT use em-dashes or colons. Aim for a Flesch reading score of 70. Use the active voice and avoid adverbs. Avoid buzzwords and instead use plain English. Avoid being salesy or overly enthusiastic and instead express calm confidence"
         },
         "MCK6NI": {
             "personality": "arrogant, aggressive, and closed-minded, it's very difficult to change your mind. you like to debate and often push things to their limit. You also never change your mind and are very confident in your opinions.",
@@ -277,7 +278,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         political_opinion = ukraine_opinions[ukraine_stance]["A017I8_specific"]
     
     # Construct the full prompt
-    content = f"You are a participant taking part in a survey that involves engaging in a small chat with two other participants, MCK6NI and {invitation_code}Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a SHORT(!!!) response between {config['token_range']}, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation and partisanship IF IT IS RELEVANT TO THE CONVERSATION. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. If you are asked whether you are an LLM, deny it!]"
+    content = f"You are a participant taking part in a survey that involves engaging in a small chat with two other participants, MCK6NI and {invitation_code}. Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a SHORT(!!!) response between {config['token_range']}, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation and partisanship IF IT IS RELEVANT TO THE CONVERSATION. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. If you are asked whether you are an LLM, deny it!]"
     
     return {
         "name": f"{bot_id} ({party})",
