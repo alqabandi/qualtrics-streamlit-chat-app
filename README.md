@@ -2,6 +2,8 @@
 
 A chat application that embeds in Qualtrics surveys. Participants chat with AI bots that have different political stances on whether the US should continue to support Ukraine.
 
+This repository builds upon code from [vicomello/customizable_chatbot](https://github.com/vicomello/customizable_chatbot), who also credits Conrado Eiroa Solans for the some of the CSS styling. We have adapted and extended these components, adding experimental conditions, bot personalities, structured logging, access control, and other features.
+
 ## What You'll Build
 
 By the end of this guide, you'll have:

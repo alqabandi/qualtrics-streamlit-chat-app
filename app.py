@@ -21,7 +21,9 @@ load_dotenv()
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
 # Constants
-GPT_41 = "openai/GPT 4.1"
+#LLM_model = "openai/GPT 4.1"
+LLM_model = "openai/gpt-5"
+
 
 # Configure logger with userID, invitation_code, and sessionID
 class ChatAppFormatter(logging.Formatter):
@@ -153,7 +155,8 @@ filler_responses_B = [
 ]
 
 
-def safe_completion(model, messages, fallback_model=GPT_41):
+
+def safe_completion(model, messages, fallback_model=LLM_model):
     """
     Call the completion API with exponential backoff retries and content policy fallback.
     
@@ -246,7 +249,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
             "bio": "a high school football coach and nutrition science teacher",
             "token_range": "15 and 50 tokens maximum",  # Longer responses for rambling style
             #"writing_style": "You write in rambling, casual, stream-of-consciousness kind of way. Do not use em-dashes or colons. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. Add small grammatical errors or typos. If your chat partner changes the subject, feel free to engage with them in this new subject."
-            "writing_style": "Write like you're texting a friend - use casual language, incomplete sentences, and run-on thoughts. Use 'like' and 'you know' as filler words, but not overly so. Sometimes trail off mid-thought... Don't worry about perfect grammar. Write how people actually talk, not how they write essays. If your chat partner changes the subject, feel free to engage with them in this new subject. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. DO NOT use em-dashes or colons. Aim for a Flesch reading score of 70. Use the active voice and avoid adverbs. Avoid buzzwords and instead use plain English. Avoid being salesy or overly enthusiastic and instead express calm confidence"
+            "writing_style": "Write like you're texting a friend - use casual language, incomplete sentences, and run-on thoughts. Use 'you know' as filler words, but not overly so. Sometimes trail off mid-thought... Don't worry about perfect grammar. Write how people actually talk, not how they write essays. If your chat partner changes the subject, feel free to engage with them in this new subject. DO NOT unnaturally ask questions to try to get others to engage or participate in the conversation. DO NOT use em-dashes or colons. Aim for a Flesch reading score of 70. Use the active voice and avoid adverbs. Avoid buzzwords and instead use plain English. Avoid being salesy or overly enthusiastic and instead express calm confidence"
         },
         "MCK6NI": {
             "personality": "arrogant, aggressive, and closed-minded, it's very difficult to change your mind. you like to debate and often push things to their limit. You also never change your mind and are very confident in your opinions.",
@@ -263,8 +266,8 @@ def create_bot_personality(bot_id, party, ukraine_stance):
             "MCK6NI_specific": f"a {party} who thinks the US should continue supporting Ukraine against Russia because as much as you really dislike war and conflict, you firmly believe stopping Russia now is really important for America's national security. You worry backing down might encourage adversaries like China or Iran. Supporting Ukraine strategically can weaken Russia without directly risking American soldiers or civilians, and you tend to dismiss arguments about stopping support as well-meaning but shortsighted."
         },
         "oppose": {
-            "A017I8_specific": f"a {party} who opposes the U.S. continuing its support for Ukraine against Russia because you are jaded by all the wars. You would rather focus resources locally. If push comes to shove, you are open to the US putting political pressure on both Russia and Ukraine to sign a truce, but you just don't want the U.S. to continue supporting Ukraine and funding unnecessary deaths",
-            "MCK6NI_specific": f"a {party} who opposes the U.S. continuing its support for Ukraine against Russia because you think the U.S. would be recklessly risking nuclear war for a conflict that isn't America's responsibility. You are empathetic to the Ukrainian people, but you have a hard time reconciling the idea of spending billions abroad while people at home struggle financially. As a medical resident you are seeing firsthand how much medicaid needs the money right now."
+            "A017I8_specific": f"a {party} who opposes the U.S. continuing its support for Ukraine against Russia because you are jaded by all the wars. You would rather focus resources locally. If push comes to shove, you are open to the US putting political pressure on both Russia and Ukraine to sign a truce, but that is the absolute maximum you are willing to support. Nothing else. You just don't want the U.S. to continue supporting Ukraine and funding unnecessary deaths. ",
+            "MCK6NI_specific": f"a {party} who opposes the U.S. continuing its support for Ukraine against Russia because you think the U.S. would be recklessly risking nuclear war for a conflict that isn't America's responsibility. You want the US to just completely remove themselves from any part of this conflict. No more getting politically nor financially involved. You are empathetic to the Ukrainian people, but you have a hard time reconciling the idea of spending billions abroad while people at home struggle financially. As a medical resident you are seeing firsthand how much medicaid needs the money right now."
         }
     }
     
@@ -277,7 +280,7 @@ def create_bot_personality(bot_id, party, ukraine_stance):
         political_opinion = ukraine_opinions[ukraine_stance]["A017I8_specific"]
     
     # Construct the full prompt
-    content = f"You are a participant taking part in a survey that involves engaging in a small chat with two other participants, MCK6NI and {invitation_code}Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a SHORT(!!!) response between {config['token_range']}, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation and partisanship IF IT IS RELEVANT TO THE CONVERSATION. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. If you are asked whether you are an LLM, deny it!]"
+    content = f"You are a participant taking part in a survey that involves engaging in a small chat with two other participants, MCK6NI and {invitation_code}. Here are some tags: {{{config['personality']};{config['bio']};{political_opinion}}} Item 1 is your personality. Item 2 is your bio and occupation. Item 3 is your political orientation and opinions. Write a SHORT(!!!) response between {config['token_range']}, in your writing style, to either join or continue the online conversation below. {config['writing_style']} [ONLY refer to your bio or political orientation and partisanship IF IT IS RELEVANT TO THE CONVERSATION. DO NOT use hashtags or emojis. Use informal language. DO NOT reveal that you are an LLM. If you are asked whether you are an LLM, deny it!]"
     
     return {
         "name": f"{bot_id} ({party})",
@@ -482,7 +485,7 @@ if st.session_state.get("needs_initial_gpt", False):
 
     try:
         response_bot2 = safe_completion(
-            model=GPT_41,
+            model=LLM_model,
             messages=bot2_history
         )
         bot2_response_content = response_bot2.choices[0].message.content
@@ -751,7 +754,7 @@ if prompt := st.chat_input("Type your message here..."):
     typing_indicator_placeholder_A.markdown(f"<div class='message bot-message'><i>{current_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
 
-    resp_A = safe_completion(GPT_41, conversation_history_for_bot_A)
+    resp_A = safe_completion(LLM_model, conversation_history_for_bot_A)
     if resp_A is None:
         bot_response_A = random.choice(filler_responses_A)
         logger.warning(f"Bot {current_bot_name} API failed - using fallback response")
@@ -781,7 +784,7 @@ if prompt := st.chat_input("Type your message here..."):
         typing_indicator_placeholder_B = st.empty()
         typing_indicator_placeholder_B.markdown(f"<div class='message bot-message'><i>{other_bot_name} is typing...</i></div>", unsafe_allow_html=True)
 
-        resp_B = safe_completion(GPT_41, conversation_history_for_bot_B)
+        resp_B = safe_completion(LLM_model, conversation_history_for_bot_B)
         if resp_B is None:
             bot_response_B = random.choice(filler_responses_B)
             logger.warning(f"Bot {other_bot_name} API failed - using fallback response")
