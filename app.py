@@ -21,8 +21,8 @@ load_dotenv()
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
 # Constants
-#LLM_model = "openai/GPT 4.1"
-LLM_model = "openai/gpt-5-mini"
+LLM_model = "openai/GPT 4.1"
+#LLM_model = "openai/gpt-5-mini"
 
 
 # Configure logger with userID, invitation_code, and sessionID
