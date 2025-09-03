@@ -21,8 +21,8 @@ load_dotenv()
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
 # Constants
-#LLM_model = "openai/GPT 4.1"
-LLM_model = "openai/gpt-5"
+LLM_model = "openai/GPT 4.1"
+#LLM_model = "openai/gpt-5-mini"
 
 
 # Configure logger with userID, invitation_code, and sessionID
@@ -171,6 +171,17 @@ def safe_completion(model, messages, fallback_model=LLM_model):
             try:
                 logger.info(f"API call attempt {attempt + 1}/{max_retries} to model {model_to_use}")
                 response = completion(model=model_to_use, messages=messages)
+                
+                
+                # Log token usage information
+                if hasattr(response, 'usage') and response.usage:
+                    prompt_tokens = response.usage.prompt_tokens
+                    completion_tokens = response.usage.completion_tokens
+                    total_tokens = response.usage.total_tokens
+                    logger.info(f"Token usage - Model: {model_to_use}, Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}")
+                else:
+                    logger.warning(f"No token usage information available for model {model_to_use}")
+                
                 logger.info(f"API call successful to model {model_to_use}")
                 return response
             except (RateLimitError, ServiceUnavailableError, APIConnectionError, InternalServerError) as e:
@@ -489,6 +500,10 @@ if st.session_state.get("needs_initial_gpt", False):
             messages=bot2_history
         )
         bot2_response_content = response_bot2.choices[0].message.content
+        
+        # Log additional context for initial bot response
+        if hasattr(response_bot2, 'usage') and response_bot2.usage:
+            logger.info(f"Initial Bot 2 response - Bot: {st.session_state['bot_B']['name']}, Tokens: {response_bot2.usage.total_tokens}")
     except Exception as e:
         print(f"Error generating Bot 2 initial response: {e}")
         bot2_response_content = "Yeah, it's definitely something worth discussing."  # Fallback
@@ -761,6 +776,10 @@ if prompt := st.chat_input("Type your message here..."):
     else:
         bot_response_A = resp_A.choices[0].message.content
         logger.info(f"Bot {current_bot_name} generated response")
+        
+        # Log additional context for bot A response
+        if hasattr(resp_A, 'usage') and resp_A.usage:
+            logger.info(f"Bot A response - Bot: {current_bot_name}, Tokens: {resp_A.usage.total_tokens}, Message length: {len(bot_response_A)} chars")
 
     sleep_and_log_delay(len(bot_response_A) / bot_A_speed)  # Simulate typing delay for Bot A
 
@@ -791,6 +810,10 @@ if prompt := st.chat_input("Type your message here..."):
         else:
             bot_response_B = resp_B.choices[0].message.content
             logger.info(f"Bot {other_bot_name} generated response")
+            
+            # Log additional context for bot B response
+            if hasattr(resp_B, 'usage') and resp_B.usage:
+                logger.info(f"Bot B response - Bot: {other_bot_name}, Tokens: {resp_B.usage.total_tokens}, Message length: {len(bot_response_B)} chars")
 
         sleep_and_log_delay(len(bot_response_B) / bot_B_speed)  # Simulate typing delay for Bot B
 
