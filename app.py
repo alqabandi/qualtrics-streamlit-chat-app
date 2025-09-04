@@ -21,8 +21,9 @@ load_dotenv()
 litellm.api_base = "https://litellm.oit.duke.edu/v1"
 
 # Constants
-LLM_model = "openai/GPT 4.1"
+#LLM_model = "openai/GPT 4.1"
 #LLM_model = "openai/gpt-5-mini"
+LLM_model = "openai/gpt-5-chat"
 
 
 # Configure logger with userID, invitation_code, and sessionID
@@ -172,13 +173,22 @@ def safe_completion(model, messages, fallback_model=LLM_model):
                 logger.info(f"API call attempt {attempt + 1}/{max_retries} to model {model_to_use}")
                 response = completion(model=model_to_use, messages=messages)
                 
-                
                 # Log token usage information
                 if hasattr(response, 'usage') and response.usage:
                     prompt_tokens = response.usage.prompt_tokens
                     completion_tokens = response.usage.completion_tokens
                     total_tokens = response.usage.total_tokens
-                    logger.info(f"Token usage - Model: {model_to_use}, Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}")
+                    reasoning_tokens = None
+                    if (
+                        hasattr(response.usage, "completion_tokens_details")
+                        and response.usage.completion_tokens_details
+                        and hasattr(response.usage.completion_tokens_details, "reasoning_tokens")
+                    ):
+                        reasoning_tokens = response.usage.completion_tokens_details.reasoning_tokens
+                    logger.info(
+                        f"Token usage - Model: {model_to_use}, Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens}"
+                        + (f", Reasoning: {reasoning_tokens}" if reasoning_tokens is not None else "")
+                    )
                 else:
                     logger.warning(f"No token usage information available for model {model_to_use}")
                 
